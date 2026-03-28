@@ -231,6 +231,7 @@ describe("POST /api/similar-projects", () => {
     expect(statusCode).toBe(200);
     expect((body as { input_repo: { full_name: string } }).input_repo.full_name).toBe("octocat/Hello-World");
     expect((body as { results: unknown[] }).results).toHaveLength(3);
+    expect((body as { project_status: string }).project_status).toBe("cousins_found");
     expect((body as { results: Array<{ full_name: string }> }).results.map((result) => result.full_name)).not.toContain(
       "octocat/Hello-World-v2"
     );
@@ -243,6 +244,355 @@ describe("POST /api/similar-projects", () => {
         docs_quality: expect.stringMatching(/low|med|high/)
       })
     );
+  });
+
+  test("returns original-project status when only the input repo can be found", async () => {
+    fetchMock.mockImplementation(async (input) => {
+      const url = String(input);
+
+      if (url === "https://tinyfish.example.com/search") {
+        return jsonResponse({
+          results: [
+            {
+              title: "Hello World",
+              url: "https://github.com/octocat/Hello-World",
+              description: "Input repository only."
+            }
+          ]
+        });
+      }
+
+      if (url.includes("/search/repositories")) {
+        return jsonResponse({ items: [] });
+      }
+
+      if (url.includes("/repos/octocat/Hello-World/languages")) {
+        return jsonResponse({ TypeScript: 1000 });
+      }
+
+      if (url.includes("/repos/octocat/Hello-World/readme")) {
+        return textResponse("# Hello World\nInput readme.");
+      }
+
+      if (url.includes("/repos/octocat/Hello-World")) {
+        return jsonResponse({
+          name: "Hello-World",
+          full_name: "octocat/Hello-World",
+          html_url: "https://github.com/octocat/Hello-World",
+          description: "AI judging repo",
+          stargazers_count: 99,
+          pushed_at: "2026-03-20T00:00:00.000Z",
+          license: { spdx_id: "MIT" },
+          topics: ["ai"],
+          homepage: "",
+          default_branch: "main"
+        });
+      }
+
+      return new Response("not found", { status: 404 });
+    });
+
+    const router = createJudgeRouter({
+      BACKEND_PORT: 8787,
+      FRONTEND_ORIGIN: "http://localhost:5173",
+      GITHUB_TOKEN: undefined,
+      BING_SEARCH_KEY: undefined,
+      OPENAI_API_KEY: undefined,
+      OPENAI_BASE_URL: undefined,
+      OPENAI_MODEL: "gpt-4.1-mini",
+      TINYFISH_MODE: "sdk",
+      TINYFISH_API_KEY: "tinyfish-key",
+      TINYFISH_BASE_URL: "https://tinyfish.example.com"
+    });
+
+    const routeLayer = router.stack.find((layer) => layer.route?.path === "/similar-projects");
+    const handler = routeLayer?.route?.stack[0]?.handle as
+      | ((request: { body: { github_url: string } }, response: { status: (code: number) => unknown; json: (value: unknown) => unknown }, next: (error?: unknown) => void) => Promise<void>)
+      | undefined;
+
+    let statusCode = 200;
+    let body: unknown = null;
+    let nextError: unknown = null;
+    const response = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(value: unknown) {
+        body = value;
+        return this;
+      }
+    };
+
+    await handler?.(
+      {
+        body: {
+          github_url: "https://github.com/octocat/Hello-World"
+        }
+      },
+      response,
+      (error?: unknown) => {
+        nextError = error;
+      }
+    );
+
+    expect(nextError).toBeNull();
+    expect(statusCode).toBe(200);
+    expect((body as { results: unknown[] }).results).toHaveLength(0);
+    expect((body as { project_status: string }).project_status).toBe("original_project");
+    expect((body as { message: string }).message).toMatch(/original idea/i);
+  });
+
+  test("returns original-project fallback when input github lookup fails", async () => {
+    fetchMock.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes("/repos/octocat/Hello-World")) {
+        return new Response("boom", { status: 500 });
+      }
+
+      return new Response("not found", { status: 404 });
+    });
+
+    const router = createJudgeRouter({
+      BACKEND_PORT: 8787,
+      FRONTEND_ORIGIN: "http://localhost:5173",
+      GITHUB_TOKEN: undefined,
+      BING_SEARCH_KEY: undefined,
+      OPENAI_API_KEY: undefined,
+      OPENAI_BASE_URL: undefined,
+      OPENAI_MODEL: "gpt-4.1-mini",
+      TINYFISH_MODE: "sdk",
+      TINYFISH_API_KEY: "tinyfish-key",
+      TINYFISH_BASE_URL: "https://tinyfish.example.com"
+    });
+
+    const routeLayer = router.stack.find((layer) => layer.route?.path === "/similar-projects");
+    const handler = routeLayer?.route?.stack[0]?.handle as
+      | ((request: { body: { github_url: string } }, response: { status: (code: number) => unknown; json: (value: unknown) => unknown }, next: (error?: unknown) => void) => Promise<void>)
+      | undefined;
+
+    let statusCode = 200;
+    let body: unknown = null;
+    let nextError: unknown = null;
+    const response = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(value: unknown) {
+        body = value;
+        return this;
+      }
+    };
+
+    await handler?.(
+      {
+        body: {
+          github_url: "https://github.com/octocat/Hello-World"
+        }
+      },
+      response,
+      (error?: unknown) => {
+        nextError = error;
+      }
+    );
+
+    expect(nextError).toBeNull();
+    expect(statusCode).toBe(200);
+    expect((body as { input_repo: { full_name: string } }).input_repo.full_name).toBe("octocat/Hello-World");
+    expect((body as { results: unknown[] }).results).toHaveLength(0);
+    expect((body as { project_status: string }).project_status).toBe("original_project");
+    expect((body as { message: string }).message).toMatch(/original idea/i);
+  });
+
+  test("returns original-project status when GitHub repo search responds with 422", async () => {
+    fetchMock.mockImplementation(async (input) => {
+      const url = String(input);
+
+      if (url === "https://tinyfish.example.com/search") {
+        return new Response("tinyfish unavailable", { status: 503 });
+      }
+
+      if (url.includes("/repos/octocat/Hello-World/languages")) {
+        return jsonResponse({ TypeScript: 1000 });
+      }
+
+      if (url.includes("/repos/octocat/Hello-World/readme")) {
+        return textResponse("# Hello World\nInput readme.");
+      }
+
+      if (url.includes("/repos/octocat/Hello-World")) {
+        return jsonResponse({
+          name: "Hello-World",
+          full_name: "octocat/Hello-World",
+          html_url: "https://github.com/octocat/Hello-World",
+          description: "AI judging repo",
+          stargazers_count: 99,
+          pushed_at: "2026-03-20T00:00:00.000Z",
+          license: { spdx_id: "MIT" },
+          topics: ["ai"],
+          homepage: "",
+          default_branch: "main"
+        });
+      }
+
+      if (url.includes("/search/repositories")) {
+        return new Response("unprocessable", { status: 422 });
+      }
+
+      return new Response("not found", { status: 404 });
+    });
+
+    const router = createJudgeRouter({
+      BACKEND_PORT: 8787,
+      FRONTEND_ORIGIN: "http://localhost:5173",
+      GITHUB_TOKEN: undefined,
+      BING_SEARCH_KEY: undefined,
+      OPENAI_API_KEY: undefined,
+      OPENAI_BASE_URL: undefined,
+      OPENAI_MODEL: "gpt-4.1-mini",
+      TINYFISH_MODE: "sdk",
+      TINYFISH_API_KEY: "tinyfish-key",
+      TINYFISH_BASE_URL: "https://tinyfish.example.com"
+    });
+
+    const routeLayer = router.stack.find((layer) => layer.route?.path === "/similar-projects");
+    const handler = routeLayer?.route?.stack[0]?.handle as
+      | ((request: { body: { github_url: string } }, response: { status: (code: number) => unknown; json: (value: unknown) => unknown }, next: (error?: unknown) => void) => Promise<void>)
+      | undefined;
+
+    let statusCode = 200;
+    let body: unknown = null;
+    let nextError: unknown = null;
+    const response = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(value: unknown) {
+        body = value;
+        return this;
+      }
+    };
+
+    await handler?.(
+      {
+        body: {
+          github_url: "https://github.com/octocat/Hello-World"
+        }
+      },
+      response,
+      (error?: unknown) => {
+        nextError = error;
+      }
+    );
+
+    expect(nextError).toBeNull();
+    expect(statusCode).toBe(200);
+    expect((body as { project_status: string }).project_status).toBe("original_project");
+    expect((body as { results: unknown[] }).results).toHaveLength(0);
+    expect((body as { message: string }).message).toMatch(/original idea/i);
+  });
+
+  test("returns original-project status when cousin repo hydration fails", async () => {
+    fetchMock.mockImplementation(async (input) => {
+      const url = String(input);
+
+      if (url === "https://tinyfish.example.com/search") {
+        return jsonResponse({
+          results: [
+            {
+              title: "Broken cousin",
+              url: "https://github.com/cousin/broken",
+              description: "Hydration should fail."
+            }
+          ]
+        });
+      }
+
+      if (url.includes("/search/repositories")) {
+        return jsonResponse({ items: [] });
+      }
+
+      if (url.includes("/repos/octocat/Hello-World/languages")) {
+        return jsonResponse({ TypeScript: 1000 });
+      }
+
+      if (url.includes("/repos/octocat/Hello-World/readme")) {
+        return textResponse("# Hello World\nInput readme.");
+      }
+
+      if (url.includes("/repos/octocat/Hello-World")) {
+        return jsonResponse({
+          name: "Hello-World",
+          full_name: "octocat/Hello-World",
+          html_url: "https://github.com/octocat/Hello-World",
+          description: "AI judging repo",
+          stargazers_count: 99,
+          pushed_at: "2026-03-20T00:00:00.000Z",
+          license: { spdx_id: "MIT" },
+          topics: ["ai"],
+          homepage: "",
+          default_branch: "main"
+        });
+      }
+
+      if (url.includes("/repos/cousin/broken")) {
+        return new Response("boom", { status: 500 });
+      }
+
+      return new Response("not found", { status: 404 });
+    });
+
+    const router = createJudgeRouter({
+      BACKEND_PORT: 8787,
+      FRONTEND_ORIGIN: "http://localhost:5173",
+      GITHUB_TOKEN: undefined,
+      BING_SEARCH_KEY: undefined,
+      OPENAI_API_KEY: undefined,
+      OPENAI_BASE_URL: undefined,
+      OPENAI_MODEL: "gpt-4.1-mini",
+      TINYFISH_MODE: "sdk",
+      TINYFISH_API_KEY: "tinyfish-key",
+      TINYFISH_BASE_URL: "https://tinyfish.example.com"
+    });
+
+    const routeLayer = router.stack.find((layer) => layer.route?.path === "/similar-projects");
+    const handler = routeLayer?.route?.stack[0]?.handle as
+      | ((request: { body: { github_url: string } }, response: { status: (code: number) => unknown; json: (value: unknown) => unknown }, next: (error?: unknown) => void) => Promise<void>)
+      | undefined;
+
+    let statusCode = 200;
+    let body: unknown = null;
+    let nextError: unknown = null;
+    const response = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(value: unknown) {
+        body = value;
+        return this;
+      }
+    };
+
+    await handler?.(
+      {
+        body: {
+          github_url: "https://github.com/octocat/Hello-World"
+        }
+      },
+      response,
+      (error?: unknown) => {
+        nextError = error;
+      }
+    );
+
+    expect(nextError).toBeNull();
+    expect(statusCode).toBe(200);
+    expect((body as { results: unknown[] }).results).toHaveLength(0);
+    expect((body as { project_status: string }).project_status).toBe("original_project");
+    expect((body as { message: string }).message).toMatch(/original idea/i);
   });
 
   test("blacklists the input repo and exact forks or versioned clones", () => {
@@ -265,7 +615,8 @@ describe("POST /api/similar-projects", () => {
     };
 
     expect(isBlacklistedCandidate(inputRepo, { ...inputRepo })).toBe(true);
-    expect(isBlacklistedCandidate(inputRepo, { ...inputRepo, fullName: "someone/Hello-World-v2", name: "Hello-World-v2" })).toBe(true);
+    expect(isBlacklistedCandidate(inputRepo, { ...inputRepo, fullName: "octocat/Hello-World-v2", name: "Hello-World-v2" })).toBe(true);
+    expect(isBlacklistedCandidate(inputRepo, { ...inputRepo, fullName: "someone/Hello-World-v2", name: "Hello-World-v2" })).toBe(false);
     expect(
       isBlacklistedCandidate(inputRepo, {
         ...inputRepo,

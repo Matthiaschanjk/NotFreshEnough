@@ -12,6 +12,8 @@ describe("SimilarProjectsResponseSchema", () => {
         description: "A judging helper",
         stars: 42
       },
+      project_status: "cousins_found",
+      message: "Found 1 cousin project across different repositories.",
       results: [
         {
           full_name: "owner/cousin-one",

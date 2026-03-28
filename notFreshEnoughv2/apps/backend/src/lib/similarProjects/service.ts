@@ -10,6 +10,7 @@ import {
 import { SimilarProjectsResponseSchema } from "./schema";
 import { searchSimilarProjectCandidates } from "./searchClient";
 import { scoreSimilarity } from "./similarity";
+import { parseGitHubRepoUrl } from "../utils/github";
 
 function toResponseInput(project: GitHubRepositoryDocument) {
   return {
@@ -49,7 +50,26 @@ export function isBlacklistedCandidate(inputRepo: GitHubRepositoryDocument, cand
     return true;
   }
 
-  return normalizeRepoStem(candidate.name) === normalizeRepoStem(inputRepo.name);
+  const inputOwner = inputRepo.fullName.split("/")[0]?.toLowerCase();
+  const candidateOwner = candidate.fullName.split("/")[0]?.toLowerCase();
+  if (inputOwner && candidateOwner && inputOwner === candidateOwner) {
+    return normalizeRepoStem(candidate.name) === normalizeRepoStem(inputRepo.name);
+  }
+
+  return false;
+}
+
+function toOriginalFallbackInput(githubUrl: string): ReturnType<typeof toResponseInput> {
+  const parsed = parseGitHubRepoUrl(githubUrl);
+  const fullName = parsed ? `${parsed.owner}/${parsed.repo}` : githubUrl;
+  return {
+    full_name: fullName,
+    url: githubUrl,
+    languages: [],
+    topics: [],
+    description: "Original idea project (GitHub metadata unavailable).",
+    stars: 0
+  };
 }
 
 export async function findSimilarProjects(
@@ -59,10 +79,27 @@ export async function findSimilarProjects(
     openAiClient?: OpenAI | null;
   }
 ) {
-  const inputRepo = await fetchGitHubProjectFromUrl(githubUrl, env);
+  const inputRepo = await fetchGitHubProjectFromUrl(githubUrl, env).catch(() => null);
+  if (!inputRepo) {
+    return SimilarProjectsResponseSchema.parse({
+      input_repo: toOriginalFallbackInput(githubUrl),
+      results: [],
+      project_status: "original_project",
+      message: "Could not fetch GitHub metadata. Treating this as an original idea project."
+    });
+  }
+
   const query = buildProjectSearchQuery(inputRepo);
   const openAiClient = dependencies?.openAiClient ?? createOpenAiClient(env);
-  const candidates = await searchSimilarProjectCandidates(query, env);
+  const candidates = await searchSimilarProjectCandidates(query, env).catch(() => null);
+  if (!candidates) {
+    return SimilarProjectsResponseSchema.parse({
+      input_repo: toResponseInput(inputRepo),
+      results: [],
+      project_status: "original_project",
+      message: "Repository search failed. Treating this as an original idea project."
+    });
+  }
 
   const hydrated = await Promise.all(
     candidates
@@ -91,6 +128,11 @@ export async function findSimilarProjects(
 
   return SimilarProjectsResponseSchema.parse({
     input_repo: toResponseInput(inputRepo),
-    results
+    results,
+    project_status: results.length > 0 ? "cousins_found" : "original_project",
+    message:
+      results.length > 0
+        ? `Found ${results.length} cousin project${results.length === 1 ? "" : "s"} across different repositories.`
+        : "No cousin repositories were confirmed. This appears to be an original idea project."
   });
 }

@@ -11,6 +11,7 @@ export function YourCousinsProjects({
   errorMessage?: string | null;
 }) {
   const reportCard = data ? generateReportCard(data) : null;
+  const isOriginalOnly = Boolean(data && data.project_status === "original_project" && data.results.length === 0);
 
   return (
     <section className="rounded-[1.75rem] border border-ink/10 bg-white/80 p-6 shadow-paper">
@@ -50,7 +51,25 @@ export function YourCousinsProjects({
               {data.input_repo.full_name}
             </a>
             <p className="mt-2 font-body text-sm leading-6 text-ink/72">{data.input_repo.description}</p>
+            {!isOriginalOnly ? <p className="mt-3 font-body text-sm leading-6 text-ink/62">{data.message}</p> : null}
           </div>
+
+          {isOriginalOnly ? (
+            <div className="relative overflow-hidden rounded-[1.5rem] border border-emerald-400/35 bg-gradient-to-r from-emerald-50 to-amber-50 p-5">
+              <div className="pointer-events-none absolute inset-0 opacity-70">
+                <span className="absolute left-[8%] top-[18%] text-lg animate-bounce">🎉</span>
+                <span className="absolute left-[24%] top-[64%] text-base animate-pulse">✨</span>
+                <span className="absolute left-[48%] top-[12%] text-lg animate-bounce">🎊</span>
+                <span className="absolute left-[72%] top-[58%] text-base animate-pulse">✨</span>
+                <span className="absolute left-[88%] top-[22%] text-lg animate-bounce">🎉</span>
+              </div>
+              <p className="relative font-body text-xs uppercase tracking-[0.18em] text-emerald-700/80">Original Project</p>
+              <p className="relative mt-2 font-display text-3xl text-emerald-800">Congratulations!</p>
+              <p className="relative mt-2 font-body text-sm leading-6 text-emerald-900/85">
+                This repository is being recognized as an original project idea. Good job building something distinct.
+              </p>
+            </div>
+          ) : null}
 
           {data.results.map((result, index) => {
             const rows = buildComparisonRows(data.input_repo, result);
@@ -105,13 +124,15 @@ export function YourCousinsProjects({
             );
           })}
 
-          <div className="rounded-[1.5rem] border border-ink/10 bg-white/72 p-5">
-            <p className="font-body text-xs uppercase tracking-[0.18em] text-ink/45">Overall judgement</p>
-            <p className="mt-2 font-body text-base leading-7 text-ink/78">{reportCard?.overallJudgement}</p>
-            <div className="mt-3 grid gap-2 font-body text-sm leading-6 text-ink/72">
-              {reportCard?.exampleLines.map((line) => <p key={line}>{line}</p>)}
+          {data.results.length > 0 ? (
+            <div className="rounded-[1.5rem] border border-ink/10 bg-white/72 p-5">
+              <p className="font-body text-xs uppercase tracking-[0.18em] text-ink/45">Overall judgement</p>
+              <p className="mt-2 font-body text-base leading-7 text-ink/78">{reportCard?.overallJudgement}</p>
+              <div className="mt-3 grid gap-2 font-body text-sm leading-6 text-ink/72">
+                {reportCard?.exampleLines.map((line) => <p key={line}>{line}</p>)}
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       ) : null}
     </section>

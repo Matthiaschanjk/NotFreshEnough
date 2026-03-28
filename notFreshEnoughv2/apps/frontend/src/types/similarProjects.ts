@@ -22,4 +22,6 @@ export interface SimilarProjectResult {
 export interface SimilarProjectsResponse {
   input_repo: SimilarProjectInputRepo;
   results: SimilarProjectResult[];
+  project_status: "original_project" | "cousins_found";
+  message: string;
 }

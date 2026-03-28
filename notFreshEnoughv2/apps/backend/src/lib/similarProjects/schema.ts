@@ -27,7 +27,9 @@ export const SimilarProjectResultSchema = z.object({
 
 export const SimilarProjectsResponseSchema = z.object({
   input_repo: SimilarProjectInputRepoSchema,
-  results: z.array(SimilarProjectResultSchema).max(3)
+  results: z.array(SimilarProjectResultSchema).max(3),
+  project_status: z.enum(["original_project", "cousins_found"]),
+  message: z.string()
 });
 
 export type SimilarProjectsRequest = z.infer<typeof SimilarProjectsRequestSchema>;
