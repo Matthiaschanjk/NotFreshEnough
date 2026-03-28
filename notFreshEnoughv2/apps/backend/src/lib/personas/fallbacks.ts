@@ -40,7 +40,7 @@ export function buildAuntyFallback(analysis: SharedProjectAnalysis, focusPlan: P
     (index) => ({
       title: analysis.judgeConcerns[index]?.title ?? "the project story is still slippery",
       detail: analysis.judgeConcerns[index]?.detail ?? "Judges still cannot see enough proof on first contact.",
-      severity: "medium",
+      severity: "medium" as const,
       evidenceIds: []
     })
   );
@@ -63,13 +63,18 @@ export function buildAhGongFallback(analysis: SharedProjectAnalysis, focusPlan: 
 
   return {
     verdict,
-    explanation: `${analysis.projectName} has enough substance that judges can inspect it, but ${topRisk.toLowerCase()} still drags down confidence. The strongest redeeming signal is that ${topStrength.toLowerCase()}.`,
+    explanation:
+      verdict === "Finalist"
+        ? `Waseh, ${analysis.projectName} got real substance lah. But do not get too happy yet leh, because ${topRisk.toLowerCase()} can still spoil judge confidence if you leave it messy.`
+        : verdict === "Borderline"
+          ? `Aiyo, ${analysis.projectName} got some solid bones lah, especially ${topStrength.toLowerCase()}, but ${topRisk.toLowerCase()} still making the whole thing feel shaky leh.`
+          : `Walao, ${analysis.projectName} got some spark lah, but ${topRisk.toLowerCase()} is dragging it down until judges will hesitate, leh.`,
     closingLine:
       verdict === "Finalist"
-        ? "Not bad. You may sit at the main table."
+        ? "Not bad lah. Can sit at the main table, but do not anyhow relax."
         : verdict === "Borderline"
-          ? "Can eat, but still cannot brag."
-          : "Bring this back only after you fix it."
+          ? "Can eat lah, but still cannot brag, leh."
+          : "Alamak, go fix properly first, then come back lah."
   };
 }
 
@@ -84,7 +89,7 @@ export function buildRecommendationsFallback(
       detail:
         analysis.missingElements[index]?.detail ??
         "The project still needs one sharper artifact that removes ambiguity quickly.",
-      severity: "medium",
+      severity: "medium" as const,
       evidenceIds: []
     })
   );
@@ -93,13 +98,18 @@ export function buildRecommendationsFallback(
     recommendations: targets.map((point, index) => ({
       priority: (index + 1) as 1 | 2 | 3,
       issue: point.title,
-      whyItMatters: toSentenceCase(point.detail),
+      whyItMatters:
+        index === 0
+          ? `Walao, ${toSentenceCase(point.detail).toLowerCase()} Judges need this fast, otherwise they blur blur leh.`
+          : index === 1
+            ? `Aiyo, ${toSentenceCase(point.detail).toLowerCase()} Without clearer proof, people will not trust the project enough lah.`
+            : `Alamak, ${toSentenceCase(point.detail).toLowerCase()} If the story stays patchy, judges will not remember the good parts leh.`,
       concreteAction:
         index === 0
-          ? "Tighten the first 30 seconds of the repo and demo so judges can tell what exists, why it matters, and what to click first."
+          ? "Tighten the first 30 seconds of the repo and demo lah, so judges can see what exists, why it matters, and what to click first without guessing."
           : index === 1
-            ? "Add a specific proof surface with screenshots, setup steps, or a short walkthrough that reduces ambiguity immediately."
-            : "Make the public story consistent across the repo, demo, and submission so the project feels deliberate rather than stitched together."
+            ? "Add a proper proof surface leh, like screenshots, setup steps, or a short walkthrough, so the value is obvious straight away."
+            : "Make the public story consistent across the repo, demo, and submission lah, so the project feels intentional instead of stitched together."
     }))
   };
 }

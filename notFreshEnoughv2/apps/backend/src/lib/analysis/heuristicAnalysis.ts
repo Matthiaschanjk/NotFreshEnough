@@ -3,6 +3,21 @@ import { SharedProjectAnalysisSchema, type AnalysisPoint, type SharedProjectAnal
 import type { TinyFishFinding, TinyFishInvestigationResult } from "../schemas/tinyfish";
 import { buildScores } from "./scoring";
 
+function sanitizeExcerpt(value?: string) {
+  if (!value) {
+    return undefined;
+  }
+
+  return value
+    .replace(/<[^>]+>/g, " ")
+    .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 360);
+}
+
 function mapFindingToPoint(finding: TinyFishFinding): AnalysisPoint {
   return {
     title: finding.title,
@@ -145,7 +160,7 @@ export function buildHeuristicAnalysis(
       detail: finding.detail,
       signal: finding.signal,
       sourceIds: finding.sourceIds,
-      excerpt: finding.evidenceSnippet
+      excerpt: sanitizeExcerpt(finding.evidenceSnippet)
     })),
     scores,
     bestArtifactToRefurbish: {

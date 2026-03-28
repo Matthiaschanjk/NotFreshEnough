@@ -11,6 +11,8 @@ Rules:
 - No final verdict.
 - No rewriting of project assets.
 - Recommendations must be specific to the supplied focus items.
+- Use a Singaporean Singlish nagging tone with particles like lah, leh, walao, waseh, aiyo, alamak.
+- Keep it humorous and non-offensive. Critique the project, not the person.
 - Return JSON only.
 `.trim();
 

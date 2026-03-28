@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { judgeProject } from "../lib/api/client";
+import { fetchSimilarProjects, judgeProject } from "../lib/api/client";
 import { buildSharePayload } from "../lib/share/buildSharePayload";
 import { shareResult } from "../lib/share/shareResult";
 import { Header } from "../components/Header";
@@ -7,6 +7,7 @@ import { HeroSection } from "../components/HeroSection";
 import { LoadingPanel } from "../components/LoadingPanel";
 import { ResultsReport } from "../components/ResultsReport";
 import type { JudgeProjectRequest, JudgeProjectResponse } from "../types/judgement";
+import type { SimilarProjectsResponse } from "../types/similarProjects";
 
 type SubmitStatus = "idle" | "submitting" | "success" | "error";
 
@@ -34,6 +35,9 @@ export function HomePage() {
   const [formValues, setFormValues] = useState(DEFAULT_FORM);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [result, setResult] = useState<JudgeProjectResponse | null>(null);
+  const [similarProjects, setSimilarProjects] = useState<SimilarProjectsResponse | null>(null);
+  const [isLoadingSimilarProjects, setIsLoadingSimilarProjects] = useState(false);
+  const [similarProjectsError, setSimilarProjectsError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
@@ -81,11 +85,14 @@ export function HomePage() {
 
     setErrorMessage(null);
     setShareMessage(null);
+    setSimilarProjects(null);
+    setSimilarProjectsError(null);
     setSubmitStatus("submitting");
 
     try {
+      const repoUrl = formValues.repoUrl.trim();
       const payload = await judgeProject({
-        repoUrl: formValues.repoUrl.trim(),
+        repoUrl,
         demoUrl: formValues.demoUrl.trim() || undefined,
         submissionUrl: formValues.submissionUrl.trim() || undefined,
         projectBlurb: formValues.projectBlurb.trim() || undefined
@@ -93,9 +100,23 @@ export function HomePage() {
 
       setResult(payload);
       setSubmitStatus("success");
+      setIsLoadingSimilarProjects(true);
+
+      fetchSimilarProjects(repoUrl)
+        .then((similarPayload) => {
+          setSimilarProjects(similarPayload);
+          setSimilarProjectsError(null);
+        })
+        .catch((error: Error) => {
+          setSimilarProjectsError(error.message);
+        })
+        .finally(() => {
+          setIsLoadingSimilarProjects(false);
+        });
     } catch (error) {
       setSubmitStatus("error");
       setErrorMessage((error as Error).message);
+      setIsLoadingSimilarProjects(false);
     }
   }
 
@@ -142,6 +163,9 @@ export function HomePage() {
           <div ref={resultRef} className="mx-auto mt-12 max-w-6xl">
             <ResultsReport
               result={result}
+              similarProjects={similarProjects}
+              isLoadingSimilarProjects={isLoadingSimilarProjects}
+              similarProjectsError={similarProjectsError}
               onShare={handleShare}
               shareStatusMessage={shareMessage}
               isSharing={isSharing}

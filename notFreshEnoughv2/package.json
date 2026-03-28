@@ -9,7 +9,8 @@
     "dev:frontend": "npm run dev --workspace apps/frontend",
     "dev:backend": "npm run dev --workspace apps/backend",
     "build": "npm run build --workspace apps/frontend && npm run build --workspace apps/backend",
-    "typecheck": "npm run typecheck --workspace apps/frontend && npm run typecheck --workspace apps/backend"
+    "typecheck": "npm run typecheck --workspace apps/frontend && npm run typecheck --workspace apps/backend",
+    "test": "npm run test --workspace apps/backend"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

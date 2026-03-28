@@ -3,7 +3,17 @@ import { resolve } from "node:path";
 import dotenv from "dotenv";
 import { z } from "zod";
 
-for (const candidate of [resolve(process.cwd(), ".env"), resolve(process.cwd(), "../../.env")]) {
+const envCandidates = [
+  resolve(process.cwd(), "src/config/.env"),
+  resolve(process.cwd(), ".env"),
+  resolve(process.cwd(), "../.env"),
+  resolve(process.cwd(), "../../.env"),
+  resolve(process.cwd(), "apps/backend/src/config/.env"),
+  resolve(process.cwd(), "apps/backend/.env"),
+  resolve(process.cwd(), ".env")
+];
+
+for (const candidate of envCandidates) {
   if (existsSync(candidate)) {
     dotenv.config({ path: candidate, override: false });
   }
@@ -22,6 +32,7 @@ const EnvSchema = z.object({
   BACKEND_PORT: z.coerce.number().int().positive().default(8787),
   FRONTEND_ORIGIN: z.string().trim().min(1).default("http://localhost:5173"),
   GITHUB_TOKEN: emptyToUndefined(z.string().trim().min(1)),
+  BING_SEARCH_KEY: emptyToUndefined(z.string().trim().min(1)),
   OPENAI_API_KEY: emptyToUndefined(z.string().trim().min(1)),
   OPENAI_BASE_URL: emptyToUndefined(z.string().url()),
   OPENAI_MODEL: z.string().default("gpt-4.1-mini"),

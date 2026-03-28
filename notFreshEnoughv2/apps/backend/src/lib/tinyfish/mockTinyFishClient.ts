@@ -47,10 +47,11 @@ function clip(value: string | undefined, length = 240) {
 
 function stripMarkdown(markdown: string) {
   return markdown
+    .replace(/<[^>]+>/g, " ")
     .replace(/```[\s\S]*?```/g, " ")
     .replace(/`([^`]+)`/g, "$1")
     .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
-    .replace(/\[[^\]]*]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
     .replace(/^#+\s*/gm, "")
     .replace(/[*_>-]/g, " ")
     .replace(/\s+/g, " ")
@@ -58,13 +59,12 @@ function stripMarkdown(markdown: string) {
 }
 
 function firstParagraph(markdown: string) {
-  return clip(
-    markdown
-      .split(/\n\s*\n/)
-      .map((chunk) => chunk.trim())
-      .find((chunk) => chunk && !chunk.startsWith("#") && !chunk.startsWith("!")),
-    360
-  );
+  const cleaned = markdown
+    .split(/\n\s*\n/)
+    .map((chunk) => stripMarkdown(chunk))
+    .find((chunk) => chunk && chunk.length > 70 && /[a-z]/i.test(chunk));
+
+  return clip(cleaned, 360);
 }
 
 function daysSince(dateString?: string) {
@@ -232,7 +232,7 @@ export class MockTinyFishClient implements TinyFishClient {
     }
 
     for (const sectionRule of README_SECTION_RULES) {
-      if (!readmeText || !sectionRule.regex.test(readme.content)) {
+      if (!readmeText || !sectionRule.regex.test(readme?.content ?? "")) {
         addFinding({
           category: sectionRule.title.includes("Judge") ? "proof" : "completeness",
           signal: "negative",

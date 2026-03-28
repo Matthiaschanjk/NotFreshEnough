@@ -4,6 +4,13 @@ function severityLabel(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+function cleanExcerpt(value: string) {
+  return value
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function TinyFishFindings({
   analysis,
   warnings
@@ -83,7 +90,7 @@ export function TinyFishFindings({
               </span>
             </div>
             <p className="font-body text-sm leading-6 text-ink/78">{item.detail}</p>
-            {item.excerpt ? <p className="mt-3 font-body text-sm italic text-ink/55">“{item.excerpt}”</p> : null}
+            {item.excerpt ? <p className="mt-3 font-body text-sm italic text-ink/55">“{cleanExcerpt(item.excerpt)}”</p> : null}
             {item.sourceIds.length > 0 ? (
               <p className="mt-3 font-body text-xs uppercase tracking-[0.14em] text-ink/45">
                 Sources: {item.sourceIds.map((sourceId) => sourceLabelMap.get(sourceId) ?? sourceId).join(", ")}

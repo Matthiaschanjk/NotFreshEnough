@@ -1,7 +1,9 @@
 import type { JudgeProjectResponse, PersonaEnvelope } from "../types/judgement";
+import type { SimilarProjectsResponse } from "../types/similarProjects";
 import { PersonaBlock } from "./PersonaBlock";
 import { ShareSection } from "./ShareSection";
 import { TinyFishFindings } from "./TinyFishFindings";
+import { YourCousinsProjects } from "./YourCousinsProjects";
 
 function ScoreRail({ label, value }: { label: string; value: number }) {
   return (
@@ -34,11 +36,17 @@ function PersonaMeta({ envelope }: { envelope: PersonaEnvelope<unknown> }) {
 
 export function ResultsReport({
   result,
+  similarProjects,
+  isLoadingSimilarProjects,
+  similarProjectsError,
   onShare,
   shareStatusMessage,
   isSharing
 }: {
   result: JudgeProjectResponse;
+  similarProjects: SimilarProjectsResponse | null;
+  isLoadingSimilarProjects: boolean;
+  similarProjectsError?: string | null;
   onShare: () => void;
   shareStatusMessage?: string | null;
   isSharing: boolean;
@@ -46,7 +54,6 @@ export function ResultsReport({
   const auntyQuestions = result.panel.aunty.data?.questions ?? [];
   const ahGong = result.panel.ahGong.data;
   const recommendations = result.panel.korkorRecommendations.data?.recommendations ?? [];
-  const refurbished = result.panel.korkorRefurbished.data;
   const failCopy =
     result.panel.statusLabel === "FAIL" ? "You have disappointed your family." : "The family has stopped whispering for now.";
 
@@ -134,21 +141,11 @@ export function ResultsReport({
             </div>
           </PersonaBlock>
 
-          <PersonaBlock title="Korkor's Refurbished Project" subtitle="One repaired artifact, ready to use">
-            <PersonaMeta envelope={result.panel.korkorRefurbished} />
-            {refurbished ? (
-              <div className="grid gap-4">
-                <div>
-                  <p className="font-body text-xs uppercase tracking-[0.18em] text-ink/45">{refurbished.artifactType}</p>
-                  <h4 className="font-display text-4xl text-ink">{refurbished.title}</h4>
-                  <p className="mt-2 font-body text-sm leading-6 text-ink/70">{refurbished.reason}</p>
-                </div>
-                <div className="rounded-[1.5rem] border border-ink/10 bg-parchment p-5">
-                  <pre className="whitespace-pre-wrap font-body text-sm leading-7 text-ink/82">{refurbished.content}</pre>
-                </div>
-              </div>
-            ) : null}
-          </PersonaBlock>
+          <YourCousinsProjects
+            data={similarProjects}
+            isLoading={isLoadingSimilarProjects}
+            errorMessage={similarProjectsError}
+          />
         </div>
       </div>
 
