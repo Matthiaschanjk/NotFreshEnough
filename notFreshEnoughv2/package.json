@@ -1,0 +1,17 @@
+{
+  "name": "notfreshenough",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -c yellow,cyan -n frontend,backend \"npm run dev --workspace apps/frontend\" \"npm run dev --workspace apps/backend\"",
+    "dev:frontend": "npm run dev --workspace apps/frontend",
+    "dev:backend": "npm run dev --workspace apps/backend",
+    "build": "npm run build --workspace apps/frontend && npm run build --workspace apps/backend",
+    "typecheck": "npm run typecheck --workspace apps/frontend && npm run typecheck --workspace apps/backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

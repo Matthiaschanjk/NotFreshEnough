@@ -1,0 +1,97 @@
+import type { SharedProjectAnalysis } from "../types/judgement";
+
+function severityLabel(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+export function TinyFishFindings({
+  analysis,
+  warnings
+}: {
+  analysis: SharedProjectAnalysis;
+  warnings: string[];
+}) {
+  const sourceLabelMap = new Map(analysis.sourcesInspected.map((source) => [source.id, source.label]));
+
+  return (
+    <section className="grid gap-6 rounded-[2rem] border border-ink/12 bg-white/78 p-6 shadow-paper md:p-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="font-body text-xs uppercase tracking-[0.28em] text-ink/45">What TinyFish Smelled</p>
+          <h3 className="font-display text-4xl text-ink">Evidence and weak signals</h3>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {analysis.sourcesInspected.map((source) => (
+            <span
+              key={source.id}
+              className="rounded-full border border-ink/10 bg-oat px-3 py-1 font-body text-xs font-semibold uppercase tracking-[0.14em] text-ink/60"
+            >
+              {source.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {warnings.length > 0 ? (
+        <div className="rounded-2xl border border-cinnabar/20 bg-cinnabar/5 p-4 font-body text-sm text-cinnabar">
+          {warnings.join(" ")}
+        </div>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-[1.5rem] border border-jade/15 bg-jade/5 p-5">
+          <h4 className="font-display text-2xl text-jade">Strong points</h4>
+          <ul className="mt-4 grid gap-3">
+            {analysis.strongPoints.map((point) => (
+              <li key={point.title} className="font-body text-sm text-ink/78">
+                <span className="font-semibold text-ink">{point.title}.</span> {point.detail}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-[1.5rem] border border-cinnabar/15 bg-cinnabar/5 p-5">
+          <h4 className="font-display text-2xl text-cinnabar">Weak points</h4>
+          <ul className="mt-4 grid gap-3">
+            {analysis.weakPoints.map((point) => (
+              <li key={point.title} className="font-body text-sm text-ink/78">
+                <span className="font-semibold text-ink">{point.title}.</span> {point.detail}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-[1.5rem] border border-gold/30 bg-gold/10 p-5">
+          <h4 className="font-display text-2xl text-ink">Judge concerns</h4>
+          <ul className="mt-4 grid gap-3">
+            {analysis.judgeConcerns.map((point) => (
+              <li key={point.title} className="font-body text-sm text-ink/78">
+                <span className="font-semibold text-ink">{point.title}.</span> {point.detail}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {analysis.evidence.map((item) => (
+          <article key={item.id} className="rounded-[1.5rem] border border-ink/10 bg-parchment p-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h4 className="font-display text-2xl text-ink">{item.title}</h4>
+              <span className="rounded-full border border-ink/10 bg-white/80 px-3 py-1 font-body text-xs font-bold uppercase tracking-[0.12em] text-ink/50">
+                {severityLabel(item.signal)}
+              </span>
+            </div>
+            <p className="font-body text-sm leading-6 text-ink/78">{item.detail}</p>
+            {item.excerpt ? <p className="mt-3 font-body text-sm italic text-ink/55">“{item.excerpt}”</p> : null}
+            {item.sourceIds.length > 0 ? (
+              <p className="mt-3 font-body text-xs uppercase tracking-[0.14em] text-ink/45">
+                Sources: {item.sourceIds.map((sourceId) => sourceLabelMap.get(sourceId) ?? sourceId).join(", ")}
+              </p>
+            ) : null}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
