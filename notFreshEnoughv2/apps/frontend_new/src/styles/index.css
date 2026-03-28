@@ -1,0 +1,143 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #1f1613;
+  background:
+    radial-gradient(circle at top left, rgba(240, 189, 82, 0.16), transparent 26%),
+    radial-gradient(circle at top right, rgba(140, 184, 197, 0.12), transparent 22%),
+    linear-gradient(180deg, #faf6ef 0%, #f7f0e2 100%);
+  font-family: "Manrope", sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(240, 189, 82, 0.14), transparent 0 24%),
+    radial-gradient(circle at 90% 12%, rgba(114, 156, 170, 0.12), transparent 0 20%),
+    linear-gradient(180deg, #fbf7ee 0%, #f6eedf 100%);
+  color: #1f1613;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.ink-divider {
+  border-top: 1px solid rgba(31, 22, 19, 0.18);
+}
+
+.paper-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(125, 88, 38, 0.16);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.84), rgba(249, 238, 217, 0.95)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent);
+  box-shadow: 0 24px 60px rgba(70, 40, 20, 0.14);
+}
+
+.paper-panel::before {
+  position: absolute;
+  inset: 14px;
+  border: 1px solid rgba(150, 113, 48, 0.16);
+  border-radius: 24px;
+  content: "";
+  pointer-events: none;
+}
+
+.report-plaque {
+  border: 2px solid rgba(213, 155, 46, 0.5);
+  background: linear-gradient(180deg, #f5ca68 0%, #ecb745 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 235, 181, 0.45),
+    0 10px 20px rgba(173, 107, 29, 0.2);
+}
+
+.stamp-button {
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.55),
+    0 12px 24px rgba(165, 42, 29, 0.28);
+}
+
+.sparkle {
+  position: relative;
+  width: 92px;
+  height: 92px;
+}
+
+.sparkle span {
+  position: absolute;
+  display: block;
+  background: linear-gradient(180deg, #52c8ff, #7f52ff 58%, #d844ff 100%);
+  clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
+  animation: twinkle 1.8s ease-in-out infinite;
+}
+
+.sparkle span:nth-child(1) {
+  inset: 18px;
+}
+
+.sparkle span:nth-child(2) {
+  width: 26px;
+  height: 26px;
+  left: 0;
+  top: 10px;
+  animation-delay: 0.22s;
+}
+
+.sparkle span:nth-child(3) {
+  width: 26px;
+  height: 26px;
+  right: 0;
+  top: 14px;
+  animation-delay: 0.4s;
+}
+
+.sparkle span:nth-child(4) {
+  width: 22px;
+  height: 22px;
+  left: 16px;
+  bottom: 6px;
+  animation-delay: 0.58s;
+}
+
+.progress-shell {
+  overflow: hidden;
+  border: 2px solid rgba(31, 22, 19, 0.8);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.progress-bar {
+  background:
+    linear-gradient(90deg, rgba(12, 12, 12, 0.95), rgba(12, 12, 12, 0.78) 68%, rgba(240, 189, 82, 0.95)),
+    linear-gradient(90deg, #000, #fff);
+  background-size: 200% 100%;
+  animation: shimmer 2.2s linear infinite;
+}
+
+.paper-noise::after {
+  position: absolute;
+  inset: 0;
+  opacity: 0.08;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(80, 50, 10, 0.18) 0, transparent 1px),
+    radial-gradient(circle at 80% 35%, rgba(80, 50, 10, 0.18) 0, transparent 1px),
+    radial-gradient(circle at 65% 70%, rgba(80, 50, 10, 0.18) 0, transparent 1px),
+    radial-gradient(circle at 30% 75%, rgba(80, 50, 10, 0.18) 0, transparent 1px);
+  background-size: 120px 120px;
+  content: "";
+  pointer-events: none;
+}

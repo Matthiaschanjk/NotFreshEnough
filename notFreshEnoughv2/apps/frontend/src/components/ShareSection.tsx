@@ -1,4 +1,7 @@
 import { Share2 } from "lucide-react";
+import facebookIcon from "../assets/facebook.png";
+import instagramIcon from "../assets/Instagram.jpg";
+import tiktokIcon from "../assets/tiktok-logo.png";
 
 interface ShareSectionProps {
   onShare: () => void;
@@ -8,8 +11,36 @@ interface ShareSectionProps {
 
 export function ShareSection({ onShare, statusMessage, isSharing }: ShareSectionProps) {
   return (
-    <section className="rounded-[2rem] border border-ink/12 bg-white/78 px-6 py-7 text-center shadow-paper">
-      <p className="font-display text-3xl text-ink">Share your Shame</p>
+    <section className="w-full rounded-[2rem] border border-ink/12 bg-white/78 px-6 py-7 text-center shadow-paper">
+      <div className="flex flex-col items-center justify-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <p className="font-display text-3xl text-ink">Share your Shame</p>
+          <div className="flex items-center gap-2">
+            <a
+              href="#"
+              className="rounded-full bg-white/80 p-1 shadow-md transition hover:scale-110 hover:bg-blue-100"
+              title="Share on Facebook"
+            >
+              <img src={facebookIcon} alt="Facebook logo" className="h-7 w-7 object-contain" />
+            </a>
+            <a
+              href="#"
+              className="rounded-full bg-white/80 p-1 shadow-md transition hover:scale-110 hover:bg-pink-100"
+              title="Share on Instagram"
+            >
+              <img src={instagramIcon} alt="Instagram logo" className="h-7 w-7 object-contain" />
+            </a>
+            <a
+              href="#"
+              className="rounded-full bg-white/80 p-1 shadow-md transition hover:scale-110 hover:bg-black/10"
+              title="Share on TikTok"
+            >
+              <img src={tiktokIcon} alt="TikTok logo" className="h-7 w-7 object-contain" />
+            </a>
+          </div>
+        </div>
+      </div>
+
       <p className="mt-2 font-body text-sm text-ink/62">
         Send it to the group chat before someone else points out the stale bits first.
       </p>
