@@ -16,8 +16,7 @@
 
 It generates a highly shareable **"State Report Card"** that mathematically proves why your cousin Timmy is still the favorite.
 
-<img width="1885" height="911" alt="NotFreshEnough2" src="https://github.com/user-attachments/assets/e2642bf8-616e-4265-b696-0b1c1cddaccc" />
-
+<img width="1885" height="911" alt="NotFreshEnough2" src="https://github.com/user-attachments/assets/b5e0f4ce-73b1-4db7-8dca-feaba14b3862" />
 
 ## ✨ Features
 * **Ruthless Repo Scraping:** Powered by **Tiny Fish**, we dive into your file structure, `README.md`, and commit history to find your deepest flaws.
@@ -29,7 +28,6 @@ It generates a highly shareable **"State Report Card"** that mathematically prov
 <img width="1912" height="920" alt="NotFreshEnough3" src="https://github.com/user-attachments/assets/95914950-b25e-4198-8fa4-75daf57a32bb" />
 <img width="1917" height="916" alt="NotFreshEnough4" src="https://github.com/user-attachments/assets/15c41d44-0156-4f08-b367-a62550e13e2c" />
 <img width="1908" height="900" alt="NotFreshEnough5" src="https://github.com/user-attachments/assets/756996f2-9b9a-42f6-b79c-993b801e63a3" />
-
 <img width="1911" height="912" alt="NotFreshEnough6" src="https://github.com/user-attachments/assets/31e49643-60e7-489e-ab1b-99a70d89c5a5" />
 
 
@@ -40,7 +38,7 @@ It generates a highly shareable **"State Report Card"** that mathematically prov
 * **Scraping Engine:** Tiny Fish
 * **Brain / Judgement Engine:** OpenAI API
 * **Styling:** CSS
-* 
+
 <img width="1911" height="907" alt="NotFreshEnough7" src="https://github.com/user-attachments/assets/79a811e6-454e-4549-989f-aee29102a065" />
 
 ---
