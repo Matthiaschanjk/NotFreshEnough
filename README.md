@@ -47,7 +47,7 @@ It generates a highly shareable **"State Report Card"** that mathematically prov
 
 **1. Clone the repository**
 ```bash
-git clone [https://github.com/Matthiaschanjk/NotFreshEnough.git](https://github.com/Matthiaschanjk/NotFreshEnough.git)
+git clone (https://github.com/Matthiaschanjk/NotFreshEnough.git)
 cd NotFreshEnoughv2
 npm i
 npm run dev
