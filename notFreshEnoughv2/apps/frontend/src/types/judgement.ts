@@ -1,5 +1,5 @@
 export type Severity = "low" | "medium" | "high";
-export type Verdict = "Finalist" | "Borderline" | "Non-finalist";
+export type Verdict = "Borderline" | "Jialat" | "Siao Liao";
 export type PersonaSource = "llm" | "fallback";
 export type StatusLabel = "PASS" | "FAIL";
 export type ArtifactType =

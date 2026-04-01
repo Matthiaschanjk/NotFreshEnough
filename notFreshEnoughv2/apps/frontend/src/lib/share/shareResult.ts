@@ -17,7 +17,7 @@ export async function shareResult(payload: SharePayload) {
     await navigator.clipboard.writeText(`${payload.text} ${payload.url}`);
     return {
       method: "clipboard" as const,
-      message: "Share text copied to clipboard."
+      message: "Faster show your friends!"
     };
   }
 

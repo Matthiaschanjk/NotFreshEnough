@@ -37,7 +37,7 @@ Output shape:
     "technicalDepth": number,
     "freshness": number,
     "overall": number,
-    "overallGrade": "A" | "A-" | "B+" | "B" | "B-" | "C+" | "C" | "C-" | "D" | "F"
+    "overallGrade": "A+" | "A" | "A-" | "B+" | "B" | "B-" | "C+" | "C" | "C-" | "D+" | "D" | "D-" | "F"
   },
   "bestArtifactToRefurbish": {
     "artifactType": "README intro" | "landing page hero section" | "30-second demo pitch" | "what judges should know section" | "project summary",
@@ -56,6 +56,11 @@ Constraints:
 - Keep evidence to 4-8 items.
 - Scores must be between 1 and 10.
 - Overall grade must reflect the overall score.
+- weakPoints must describe concrete, observable shortcomings in the repo, README, demo, docs, or exposed implementation.
+- judgeConcerns must describe the likely concerns or doubts a hackathon judge would infer from those weak points.
+- weakPoints and judgeConcerns must never reuse the same title or the same sentence.
+- judgeConcerns must be written from a judging perspective using consequence-oriented phrasing such as "Judges may...", "Judges may question...", or "Judges may hesitate...".
+- weakPoints should stay evidence-based and directly observable; judgeConcerns should stay evaluative and higher-level.
 
 User input:
 ${JSON.stringify(input, null, 2)}

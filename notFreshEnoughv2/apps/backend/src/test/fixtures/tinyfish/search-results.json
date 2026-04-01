@@ -1,0 +1,22 @@
+{
+  "results": [
+    {
+      "title": "Spec Kit",
+      "url": "https://github.com/cousin/alpha",
+      "snippet": "Structured AI-agent development framework for hackathon teams with docs, workflows, and live demo links.",
+      "source": "github"
+    },
+    {
+      "title": "LaunchPad AI",
+      "url": "https://devpost.com/software/launchpad-ai",
+      "snippet": "Devpost submission for an AI judging helper with pitch clarity, README improvements, and public demo notes.",
+      "source": "devpost"
+    },
+    {
+      "title": "AI Builder Showcase",
+      "url": "https://www.linkedin.com/posts/public-ai-builder-showcase",
+      "snippet": "Public LinkedIn post describing an AI hackathon project that audits repositories, demos, and technical delivery.",
+      "source": "linkedin"
+    }
+  ]
+}

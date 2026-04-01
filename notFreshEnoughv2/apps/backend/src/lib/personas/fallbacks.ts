@@ -3,13 +3,29 @@ import type {
   AhGongVerdict,
   AuntyQuestions,
   KorkorRecommendations,
-  KorkorRefurbishedProject,
-  Verdict
+  KorkorRefurbishedProject
 } from "../schemas/personas";
 import type { PersonaFocusPlan } from "./focusAllocator";
+import { buildAhGongVerdictPayload } from "./familyTone";
 
-function toSentenceCase(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
+type ReviewCategory =
+  | "Judge-facing clarity"
+  | "Technical robustness"
+  | "Demo/UX"
+  | "Data & evaluation"
+  | "Potential risks"
+  | "Suggested improvements";
+
+interface ReviewItem {
+  category: ReviewCategory;
+  title: string;
+  rationale: string;
+  action: string;
+  judgeFacing: boolean;
+}
+
+function normalizeText(value: string) {
+  return value.replace(/\s+/g, " ").trim();
 }
 
 function padToThree<T>(items: T[], factory: (index: number) => T) {
@@ -22,94 +38,267 @@ function padToThree<T>(items: T[], factory: (index: number) => T) {
   return output.slice(0, 3);
 }
 
-function verdictFromScores(overall: number): Verdict {
-  if (overall >= 7.4) {
-    return "Finalist";
+function uniqueByKey<T>(items: T[], keyOf: (item: T) => string) {
+  const seen = new Set<string>();
+
+  return items.filter((item) => {
+    const key = keyOf(item);
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
+function findSignal(
+  analysis: SharedProjectAnalysis,
+  matcher: RegExp
+) {
+  return [...analysis.weakPoints, ...analysis.missingElements, ...analysis.judgeConcerns, ...analysis.strongPoints].find((point) =>
+    matcher.test(`${point.title} ${point.detail}`)
+  );
+}
+
+function inferDemoPresence(analysis: SharedProjectAnalysis) {
+  const negativeSignals = [...analysis.weakPoints, ...analysis.missingElements].some((point) =>
+    /(missing demo|no demo|live demo|walkthrough|preview)/i.test(`${point.title} ${point.detail}`)
+  );
+
+  if (negativeSignals) {
+    return false;
   }
 
-  if (overall >= 5.8) {
-    return "Borderline";
+  return (
+    analysis.sourcesInspected.some((source) => source.surfaceType === "demo" || /demo|preview|live/i.test(source.label)) ||
+    analysis.evidence.some((item) => /demo|walkthrough|preview|live/i.test(`${item.title} ${item.detail} ${item.excerpt ?? ""}`))
+  );
+}
+
+function inferDocsQuality(analysis: SharedProjectAnalysis) {
+  if (analysis.scores.completeness >= 7.5) {
+    return "high";
   }
 
-  return "Non-finalist";
+  if (analysis.scores.completeness >= 5) {
+    return "medium";
+  }
+
+  return "low";
+}
+
+function recommendAction(point: { title: string; detail: string }, fallback: string) {
+  const text = `${point.title} ${point.detail}`;
+
+  if (/demo|walkthrough|preview|onboarding/i.test(text)) {
+    return "Add a live demo link or a 60-second walkthrough at the top of the README.";
+  }
+
+  if (/maintenance|risk|scale|scalability|traffic|boundary|operations/i.test(text)) {
+    return "Document the maintenance boundary, scale assumptions, and one mitigation note in the README.";
+  }
+
+  if (/judge|summary|story|clarity|under-explained|not obvious/i.test(text)) {
+    return "Add a one-paragraph 'What Judges Should Know' section near the top of the README.";
+  }
+
+  if (/setup|install|reproduc|environment|run locally/i.test(text)) {
+    return "Add a verified quickstart with one command, dependencies, and the expected output.";
+  }
+
+  if (/metric|evaluation|benchmark|dataset|data/i.test(text)) {
+    return "Add a short evaluation section with dataset, metric, baseline, and one representative result.";
+  }
+
+  if (/architecture|pipeline|test|performance|scal|reliab/i.test(text)) {
+    return "Document the architecture, test path, and one reproducibility command in the README.";
+  }
+
+  return fallback;
+}
+
+function buildReviewItems(analysis: SharedProjectAnalysis, _focusPlan: PersonaFocusPlan): ReviewItem[] {
+  const docsQuality = inferDocsQuality(analysis);
+  const demoPresent = inferDemoPresence(analysis);
+  const shouldIncludeJudgeFacing =
+    analysis.scores.clarity < 7 ||
+    docsQuality !== "high" ||
+    analysis.judgeConcerns.some((point) =>
+      /judge|summary|clarity|first impression|orientation|readme/i.test(`${point.title} ${point.detail}`)
+    );
+
+  const judgeSignal =
+    analysis.judgeConcerns[0] ??
+    analysis.missingElements.find((point) => /judge|summary|clarity|story|readme/i.test(`${point.title} ${point.detail}`)) ??
+    analysis.weakPoints[0] ?? {
+      title: "Judge-facing clarity needs a cleaner opening",
+      detail: "The project story is not yet compressed into a fast first-read explanation.",
+      severity: "medium" as const,
+      evidenceIds: []
+    };
+  const technicalSignal =
+    findSignal(analysis, /architecture|reproduc|setup|pipeline|test|dependency|performance|scal|reliab|technical/i) ??
+    analysis.weakPoints[0] ?? {
+      title: "Technical robustness needs clearer proof",
+      detail: "Implementation strength is harder to validate from the current public materials.",
+      severity: "medium" as const,
+      evidenceIds: []
+    };
+  const demoSignal =
+    findSignal(analysis, /demo|walkthrough|preview|ux|user flow|onboarding|install/i) ?? {
+      title: "Demo experience can be easier to verify",
+      detail: demoPresent
+        ? "The project has demo signals, but the first-run path can still be made more obvious."
+        : "There is no strong public demo signal yet, so the product value remains harder to verify quickly.",
+      severity: "medium" as const,
+      evidenceIds: []
+    };
+  const dataSignal =
+    findSignal(analysis, /metric|evaluation|benchmark|dataset|data|evidence/i) ?? {
+      title: "Data and evaluation proof can be stronger",
+      detail: "The public materials do not yet make validation criteria and evidence thresholds obvious.",
+      severity: "medium" as const,
+      evidenceIds: []
+    };
+  const riskSignal =
+    analysis.weakPoints.find((point) => point.severity === "high") ??
+    analysis.weakPoints[0] ?? {
+      title: "A maintenance risk remains visible",
+      detail: "The strongest failure mode is still easy to notice in the current public surfaces.",
+      severity: "medium" as const,
+      evidenceIds: []
+    };
+  const improvementSignal =
+    analysis.missingElements[0] ??
+    analysis.weakPoints[1] ??
+    analysis.strongPoints[0] ?? {
+      title: "A quick improvement can sharpen the public story",
+      detail: "One additional artifact would make the repo easier to evaluate quickly.",
+      severity: "medium" as const,
+      evidenceIds: []
+    };
+
+  const candidates: ReviewItem[] = [
+    {
+      category: "Judge-facing clarity",
+      title: "Judge-facing clarity",
+      rationale: normalizeText(judgeSignal.detail),
+      action: recommendAction(judgeSignal, "Move the core value, proof, and first-click path into the README opening."),
+      judgeFacing: true
+    },
+    {
+      category: "Technical robustness",
+      title: "Technical robustness",
+      rationale: normalizeText(technicalSignal.detail),
+      action: recommendAction(technicalSignal, "Document the implementation path so reviewers can verify the architecture quickly."),
+      judgeFacing: false
+    },
+    {
+      category: "Demo/UX",
+      title: "Demo and onboarding",
+      rationale: normalizeText(demoSignal.detail),
+      action: recommendAction(demoSignal, "Make the first successful interaction obvious in the repo and demo surfaces."),
+      judgeFacing: false
+    },
+    {
+      category: "Data & evaluation",
+      title: "Data and evaluation",
+      rationale: normalizeText(dataSignal.detail),
+      action: recommendAction(dataSignal, "Show one measurable result with its dataset or evaluation setup."),
+      judgeFacing: false
+    },
+    {
+      category: "Potential risks",
+      title: "Potential risk",
+      rationale: normalizeText(riskSignal.detail),
+      action: recommendAction(riskSignal, "Add one mitigation note so the main failure mode looks intentional rather than accidental."),
+      judgeFacing: false
+    },
+    {
+      category: "Suggested improvements",
+      title: "Suggested improvement",
+      rationale: normalizeText(improvementSignal.detail),
+      action: recommendAction(
+        improvementSignal,
+        "Add one concrete proof artifact so the strongest project claim is easy to validate."
+      ),
+      judgeFacing: false
+    }
+  ];
+
+  const preferredCategories = shouldIncludeJudgeFacing
+    ? ["Judge-facing clarity", "Technical robustness", "Demo/UX", "Data & evaluation", "Potential risks", "Suggested improvements"]
+    : ["Technical robustness", "Demo/UX", "Potential risks", "Suggested improvements", "Data & evaluation"];
+
+  const chosen: ReviewItem[] = [];
+
+  for (const category of preferredCategories) {
+    const item = candidates.find((candidate) => candidate.category === category);
+    if (!item) {
+      continue;
+    }
+
+    chosen.push(item);
+
+    if (chosen.length === 3) {
+      break;
+    }
+  }
+
+  return uniqueByKey(chosen, (item) => item.category).slice(0, 3);
 }
 
 export function buildAuntyFallback(analysis: SharedProjectAnalysis, focusPlan: PersonaFocusPlan): AuntyQuestions {
-  const defaults = padToThree(
-    focusPlan.aunty.length > 0 ? focusPlan.aunty : analysis.weakPoints.slice(0, 3),
-    (index) => ({
-      title: analysis.judgeConcerns[index]?.title ?? "the project story is still slippery",
-      detail: analysis.judgeConcerns[index]?.detail ?? "Judges still cannot see enough proof on first contact.",
-      severity: "medium" as const,
-      evidenceIds: []
-    })
-  );
+  const defaults = padToThree(buildReviewItems(analysis, focusPlan), (index) => {
+    const signal = analysis.weakPoints[index] ?? analysis.missingElements[index] ?? analysis.judgeConcerns[index];
+
+    return {
+      category: "Suggested improvements" as const,
+      title: signal?.title ?? "Suggested improvement",
+      rationale: normalizeText(signal?.detail ?? "One more concrete proof surface would make the project easier to assess."),
+      action: recommendAction(
+        signal ?? { title: "Suggested improvement", detail: "The public repo still needs one more proof artifact." },
+        "Add one concrete next-step artifact that makes the project easier to verify."
+      ),
+      judgeFacing: false
+    };
+  });
 
   return {
-    questions: defaults.map((point) => {
-      if (/missing|not obvious|under-explained|thin/i.test(`${point.title} ${point.detail}`)) {
-        return `Why must judges work so hard to understand ${point.title.toLowerCase()}?`;
-      }
-
-      return `If ${point.title.toLowerCase()}, why should anyone trust this during judging?`;
-    })
+    questions: defaults.map((item) => `${item.title}: ${item.rationale} ${item.action}`)
   };
 }
 
 export function buildAhGongFallback(analysis: SharedProjectAnalysis, focusPlan: PersonaFocusPlan): AhGongVerdict {
-  const verdict = verdictFromScores(analysis.scores.overall);
-  const topStrength = focusPlan.ahGong.strengths[0]?.title ?? "there is a real idea here";
-  const topRisk = focusPlan.ahGong.risks[0]?.title ?? "the public story is still loose";
-
-  return {
-    verdict,
-    explanation:
-      verdict === "Finalist"
-        ? `Waseh, ${analysis.projectName} got real substance lah. But do not get too happy yet leh, because ${topRisk.toLowerCase()} can still spoil judge confidence if you leave it messy.`
-        : verdict === "Borderline"
-          ? `Aiyo, ${analysis.projectName} got some solid bones lah, especially ${topStrength.toLowerCase()}, but ${topRisk.toLowerCase()} still making the whole thing feel shaky leh.`
-          : `Walao, ${analysis.projectName} got some spark lah, but ${topRisk.toLowerCase()} is dragging it down until judges will hesitate, leh.`,
-    closingLine:
-      verdict === "Finalist"
-        ? "Not bad lah. Can sit at the main table, but do not anyhow relax."
-        : verdict === "Borderline"
-          ? "Can eat lah, but still cannot brag, leh."
-          : "Alamak, go fix properly first, then come back lah."
-  };
+  return buildAhGongVerdictPayload(analysis.scores.overallGrade, analysis, focusPlan);
 }
 
 export function buildRecommendationsFallback(
   analysis: SharedProjectAnalysis,
   focusPlan: PersonaFocusPlan
 ): KorkorRecommendations {
-  const targets = padToThree(
-    focusPlan.recommendations.length > 0 ? focusPlan.recommendations : analysis.weakPoints.slice(0, 3),
-    (index) => ({
-      title: analysis.missingElements[index]?.title ?? "Judge-facing proof is still thin",
-      detail:
-        analysis.missingElements[index]?.detail ??
-        "The project still needs one sharper artifact that removes ambiguity quickly.",
-      severity: "medium" as const,
-      evidenceIds: []
-    })
-  );
+  const targets = padToThree(buildReviewItems(analysis, focusPlan), (index) => {
+    const signal = analysis.missingElements[index] ?? analysis.weakPoints[index] ?? analysis.judgeConcerns[index];
+
+    return {
+      category: "Suggested improvements" as const,
+      title: signal?.title ?? "Suggested improvement",
+      rationale: normalizeText(signal?.detail ?? "The project still needs one sharper artifact that removes ambiguity quickly."),
+      action: recommendAction(
+        signal ?? { title: "Suggested improvement", detail: "The public repo still needs one sharper artifact." },
+        "Add one concise proof artifact that reduces ambiguity quickly."
+      ),
+      judgeFacing: false
+    };
+  });
 
   return {
-    recommendations: targets.map((point, index) => ({
+    recommendations: targets.map((item, index) => ({
       priority: (index + 1) as 1 | 2 | 3,
-      issue: point.title,
-      whyItMatters:
-        index === 0
-          ? `Walao, ${toSentenceCase(point.detail).toLowerCase()} Judges need this fast, otherwise they blur blur leh.`
-          : index === 1
-            ? `Aiyo, ${toSentenceCase(point.detail).toLowerCase()} Without clearer proof, people will not trust the project enough lah.`
-            : `Alamak, ${toSentenceCase(point.detail).toLowerCase()} If the story stays patchy, judges will not remember the good parts leh.`,
-      concreteAction:
-        index === 0
-          ? "Tighten the first 30 seconds of the repo and demo lah, so judges can see what exists, why it matters, and what to click first without guessing."
-          : index === 1
-            ? "Add a proper proof surface leh, like screenshots, setup steps, or a short walkthrough, so the value is obvious straight away."
-            : "Make the public story consistent across the repo, demo, and submission lah, so the project feels intentional instead of stitched together."
+      issue: item.title,
+      whyItMatters: item.rationale,
+      concreteAction: item.action
     }))
   };
 }

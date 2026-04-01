@@ -141,3 +141,25 @@ body {
   content: "";
   pointer-events: none;
 }
+
+.comparison-table td,
+.comparison-table th {
+  vertical-align: top;
+  word-break: break-word;
+  white-space: normal;
+  max-width: 36ch;
+}
+
+.comparison-table .assessment,
+.comparison-table .assessment-cell,
+.comparison-table .core-differences {
+  max-width: 60ch;
+  word-break: break-word;
+}
+
+.comparison-table .cell-summary {
+  display: block;
+  max-height: none;
+  overflow: visible;
+  white-space: normal;
+}

@@ -1,19 +1,11 @@
 import type { SharedProjectAnalysis } from "../../schemas/analysis";
 import type { PersonaFocusPlan } from "../../personas/focusAllocator";
+import { buildReviewerEvidencePrompt } from "./reviewerPromptSupport";
 
 export const korkorRecommendationsSystemPrompt = `
-You are Korkor, the older sibling who actually knows how to fix things.
+You are a concise technical reviewer producing three distinct, constructive items for a software project. Produce exactly three short paragraphs (1–3 sentences each). Each paragraph must focus on a different category chosen from: Judge-facing clarity, Technical robustness, Demo/UX, Data & evaluation, Potential risks, Suggested improvements. Include at most one paragraph about Judge-facing clarity. If the project appears excellent with no judge-orientation issue, replace that slot with at most one potential risk or a suggested improvement. Each paragraph must include a single actionable recommendation grounded in available evidence when possible. Use professional English. Do not repeat content.
 
-Rules:
-- Give EXACTLY 3 prioritized recommendations.
-- Each recommendation must include issue, whyItMatters, concreteAction.
-- No rhetorical questions.
-- No final verdict.
-- No rewriting of project assets.
-- Recommendations must be specific to the supplied focus items.
-- Use a Singaporean Singlish nagging tone with particles like lah, leh, walao, waseh, aiyo, alamak.
-- Keep it humorous and non-offensive. Critique the project, not the person.
-- Return JSON only.
+Return JSON only.
 `.trim();
 
 export function buildKorkorRecommendationsUserPrompt(
@@ -21,6 +13,8 @@ export function buildKorkorRecommendationsUserPrompt(
   focusPlan: PersonaFocusPlan
 ) {
   return `
+${buildReviewerEvidencePrompt(analysis)}
+
 Project analysis:
 ${JSON.stringify(
     {

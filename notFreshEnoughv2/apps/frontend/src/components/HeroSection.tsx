@@ -18,8 +18,7 @@ export function HeroSection({ values, isSubmitting, errorMessage, onChange, onSu
   return (
     <section className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_460px] lg:items-center">
       <div className="max-w-2xl">
-        <p className="font-body text-xs uppercase tracking-[0.3em] text-ink/45">Submit for Judgement</p>
-        <h2 className="mt-4 font-display text-6xl leading-[0.92] text-ink md:text-7xl">
+        <h2 className="font-display text-6xl leading-[0.92] text-ink md:text-7xl">
           Submit for <span className="text-bronze">Judgement</span>
         </h2>
         <p className="mt-6 max-w-xl font-body text-lg leading-8 text-ink/72">

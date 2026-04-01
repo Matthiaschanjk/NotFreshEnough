@@ -7,18 +7,8 @@ import type { JudgeProjectInput } from "../schemas/input";
 import { JudgeProjectResponseSchema } from "../schemas/response";
 import { investigateProject } from "../tinyfish/investigateProject";
 import { createId } from "../utils/ids";
-
-function buildHeadline(verdict: "Finalist" | "Borderline" | "Non-finalist") {
-  if (verdict === "Finalist") {
-    return "Fresh enough to bring to the main family table.";
-  }
-
-  if (verdict === "Borderline") {
-    return "Family unconvinced, but not yet disowning the repo.";
-  }
-
-  return "You have disappointed your family.";
-}
+import { isPassingGrade } from "../analysis/grading";
+import { buildFamilyReactionLine } from "../personas/familyTone";
 
 export async function judgeProject(input: JudgeProjectInput, env: Env) {
   const requestId = createId("judge");
@@ -38,14 +28,7 @@ export async function judgeProject(input: JudgeProjectInput, env: Env) {
     model: env.OPENAI_MODEL
   });
 
-  const verdict =
-    personas.ahGong.status === "ok" && personas.ahGong.data
-      ? personas.ahGong.data.verdict
-      : analysis.scores.overall >= 7.4
-        ? "Finalist"
-        : analysis.scores.overall >= 5.8
-          ? "Borderline"
-          : "Non-finalist";
+  const passing = isPassingGrade(analysis.scores.overallGrade);
 
   return JudgeProjectResponseSchema.parse({
     requestId,
@@ -58,8 +41,8 @@ export async function judgeProject(input: JudgeProjectInput, env: Env) {
       sourcesInspected: analysis.sourcesInspected.length
     },
     panel: {
-      familyHeadline: buildHeadline(verdict),
-      statusLabel: verdict === "Finalist" ? "PASS" : "FAIL",
+      familyHeadline: buildFamilyReactionLine(analysis.scores.overallGrade, analysis),
+      statusLabel: passing ? "PASS" : "FAIL",
       ...personas
     }
   });

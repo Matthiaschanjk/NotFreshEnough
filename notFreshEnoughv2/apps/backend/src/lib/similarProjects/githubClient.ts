@@ -140,7 +140,7 @@ function scoreDocsQuality(readme: string): "low" | "med" | "high" {
   return "low";
 }
 
-function extractKeywords(input: string, limit = 8) {
+function extractKeywords(input: string, limit = 15) {
   const tokens = input
     .toLowerCase()
     .split(/[^a-z0-9+#.]+/g)

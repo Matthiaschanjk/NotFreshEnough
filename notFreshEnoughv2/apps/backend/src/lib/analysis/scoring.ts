@@ -1,4 +1,5 @@
 import type { TinyFishFinding } from "../schemas/tinyfish";
+import { gradeForOverallScore } from "./grading";
 
 type ScoreKey =
   | "clarity"
@@ -9,12 +10,12 @@ type ScoreKey =
   | "freshness";
 
 const SCORE_BASELINES: Record<ScoreKey, number> = {
-  clarity: 6.6,
-  completeness: 6.4,
-  differentiation: 6.0,
-  usability: 6.2,
-  technicalDepth: 6.0,
-  freshness: 6.3
+  clarity: 5.8,
+  completeness: 5.6,
+  differentiation: 5.2,
+  usability: 5.5,
+  technicalDepth: 5.4,
+  freshness: 5.4
 };
 
 const SCORE_CATEGORY_MAP: Record<TinyFishFinding["category"], ScoreKey[]> = {
@@ -28,12 +29,12 @@ const SCORE_CATEGORY_MAP: Record<TinyFishFinding["category"], ScoreKey[]> = {
   consistency: ["clarity", "completeness"]
 };
 
-function clamp(value: number, min = 1, max = 10) {
+function clamp(value: number, min = 0, max = 10) {
   return Math.min(max, Math.max(min, Number(value.toFixed(1))));
 }
 
 function impactForFinding(finding: TinyFishFinding) {
-  const base = finding.severity === "high" ? 2.2 : finding.severity === "medium" ? 1.25 : 0.65;
+  const base = finding.severity === "high" ? 2.6 : finding.severity === "medium" ? 1.5 : 0.7;
 
   if (finding.signal === "positive") {
     return base;
@@ -46,39 +47,45 @@ function impactForFinding(finding: TinyFishFinding) {
   return 0;
 }
 
-export function gradeForOverallScore(overall: number) {
-  if (overall >= 9.1) return "A";
-  if (overall >= 8.6) return "A-";
-  if (overall >= 8.1) return "B+";
-  if (overall >= 7.4) return "B";
-  if (overall >= 6.8) return "B-";
-  if (overall >= 6.2) return "C+";
-  if (overall >= 5.5) return "C";
-  if (overall >= 4.8) return "C-";
-  if (overall >= 4.1) return "D";
-  return "F";
-}
-
 export function buildScores(findings: TinyFishFinding[]) {
   const scores = { ...SCORE_BASELINES };
+  let highNegativeCount = 0;
+  let mediumNegativeCount = 0;
+  let positiveCount = 0;
 
   for (const finding of findings) {
     const targets = SCORE_CATEGORY_MAP[finding.category];
     const impact = impactForFinding(finding) / targets.length;
+
+    if (finding.signal === "negative") {
+      if (finding.severity === "high") {
+        highNegativeCount += 1;
+      } else if (finding.severity === "medium") {
+        mediumNegativeCount += 1;
+      }
+    }
+
+    if (finding.signal === "positive") {
+      positiveCount += 1;
+    }
 
     for (const target of targets) {
       scores[target] = clamp(scores[target] + impact);
     }
   }
 
+  const weightedAverage =
+    (scores.clarity * 1.2 +
+      scores.completeness * 1.2 +
+      scores.differentiation * 1.0 +
+      scores.usability * 1.1 +
+      scores.technicalDepth * 1.15 +
+      scores.freshness * 0.95) /
+    6.6;
+  const flawPenalty = highNegativeCount * 0.45 + mediumNegativeCount * 0.18;
+  const positiveBonus = Math.min(0.35, positiveCount * 0.05);
   const overall = clamp(
-    (scores.clarity +
-      scores.completeness +
-      scores.differentiation +
-      scores.usability +
-      scores.technicalDepth +
-      scores.freshness) /
-      6
+    weightedAverage - flawPenalty + positiveBonus
   );
 
   return {

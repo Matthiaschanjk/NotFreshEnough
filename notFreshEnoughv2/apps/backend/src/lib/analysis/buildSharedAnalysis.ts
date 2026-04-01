@@ -5,6 +5,7 @@ import type { JudgeProjectInput } from "../schemas/input";
 import type { TinyFishInvestigationResult } from "../schemas/tinyfish";
 import { buildHeuristicAnalysis } from "./heuristicAnalysis";
 import { buildEvaluatorUserPrompt, evaluatorSystemPrompt } from "../prompts/evaluatorPrompt";
+import { ensureDistinctAnalysisSections } from "./distinctAnalysis";
 
 // This file exists to keep evaluator normalization separate from TinyFish collection.
 export async function buildSharedAnalysis(args: {
@@ -17,7 +18,7 @@ export async function buildSharedAnalysis(args: {
   const heuristic = buildHeuristicAnalysis(input, investigation);
 
   if (!client) {
-    return heuristic;
+    return ensureDistinctAnalysisSections(heuristic);
   }
 
   try {
@@ -30,12 +31,14 @@ export async function buildSharedAnalysis(args: {
       temperature: 0.2
     });
 
-    return SharedProjectAnalysisSchema.parse({
+    const parsed = SharedProjectAnalysisSchema.parse({
       ...heuristic,
       ...generated,
       sourcesInspected: heuristic.sourcesInspected
     });
+
+    return ensureDistinctAnalysisSections(parsed);
   } catch {
-    return heuristic;
+    return ensureDistinctAnalysisSections(heuristic);
   }
 }

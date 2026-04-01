@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import dotenv from "dotenv";
 import { z } from "zod";
@@ -19,6 +19,20 @@ for (const candidate of envCandidates) {
   }
 }
 
+if (process.env.CI === "true") {
+  for (const candidate of envCandidates) {
+    if (!existsSync(candidate)) {
+      continue;
+    }
+
+    const contents = readFileSync(candidate, "utf8");
+    if (/(ghp_[A-Za-z0-9]+|sk-[A-Za-z0-9_-]+)/.test(contents)) {
+      console.warn(`[security] Potential API key material detected in ${candidate}. Rotate exposed credentials.`);
+      break;
+    }
+  }
+}
+
 const emptyToUndefined = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess((value) => {
     if (typeof value === "string" && value.trim() === "") {
@@ -28,6 +42,15 @@ const emptyToUndefined = <T extends z.ZodTypeAny>(schema: T) =>
     return value;
   }, schema.optional());
 
+const emptyToDefault = <T extends z.ZodTypeAny>(schema: T, defaultValue: z.input<T>) =>
+  z.preprocess((value) => {
+    if (typeof value === "string" && value.trim() === "") {
+      return undefined;
+    }
+
+    return value;
+  }, schema.default(defaultValue as z.infer<T>));
+
 const EnvSchema = z.object({
   BACKEND_PORT: z.coerce.number().int().positive().default(8787),
   FRONTEND_ORIGIN: z.string().trim().min(1).default("http://localhost:5173"),
@@ -36,9 +59,9 @@ const EnvSchema = z.object({
   OPENAI_API_KEY: emptyToUndefined(z.string().trim().min(1)),
   OPENAI_BASE_URL: emptyToUndefined(z.string().url()),
   OPENAI_MODEL: z.string().default("gpt-4.1-mini"),
-  TINYFISH_MODE: z.enum(["mock", "sdk"]).default("mock"),
+  TINYFISH_MODE: z.enum(["mock", "sdk", "api"]).default("mock"),
   TINYFISH_API_KEY: emptyToUndefined(z.string().trim().min(1)),
-  TINYFISH_BASE_URL: emptyToUndefined(z.string().url())
+  TINYFISH_BASE_URL: emptyToDefault(z.string().url(), "https://agent.tinyfish.ai/v1")
 });
 
 export const env = EnvSchema.parse(process.env);

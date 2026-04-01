@@ -1,8 +1,8 @@
 import { Router } from "express";
 import type { Env } from "../config/env";
+import { discoverSimilarProjects } from "../lib/discovery/orchestrator";
 import { judgeProject } from "../lib/orchestrators/judgeProject";
 import { SimilarProjectsRequestSchema } from "../lib/similarProjects/schema";
-import { findSimilarProjects } from "../lib/similarProjects/service";
 import { JudgeProjectInputSchema } from "../lib/schemas/input";
 
 export function createJudgeRouter(env: Env) {
@@ -28,7 +28,7 @@ export function createJudgeRouter(env: Env) {
   router.post("/similar-projects", async (request, response, next) => {
     try {
       const input = SimilarProjectsRequestSchema.parse(request.body);
-      const result = await findSimilarProjects(input.github_url, env);
+      const result = await discoverSimilarProjects(input.github_url, env);
       response.status(200).json(result);
     } catch (error) {
       next(error);

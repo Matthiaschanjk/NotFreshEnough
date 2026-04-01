@@ -2,6 +2,7 @@ import type { JudgeProjectInput } from "../schemas/input";
 import { SharedProjectAnalysisSchema, type AnalysisPoint, type SharedProjectAnalysis } from "../schemas/analysis";
 import type { TinyFishFinding, TinyFishInvestigationResult } from "../schemas/tinyfish";
 import { buildScores } from "./scoring";
+import { ensureDistinctAnalysisSections, rewriteWeakPointAsJudgeConcern } from "./distinctAnalysis";
 
 function sanitizeExcerpt(value?: string) {
   if (!value) {
@@ -79,15 +80,15 @@ export function buildHeuristicAnalysis(
     .slice(0, 4);
 
   const judgeConcerns = uniquePoints(
-    negativeFindings
-      .filter((finding) => finding.severity !== "low")
-      .map(mapFindingToPoint)
+    weaknesses
+      .filter((point) => point.severity !== "low")
+      .map(rewriteWeakPointAsJudgeConcern)
       .concat(
         scores.freshness < 6
           ? [
               {
-                title: "Judges may question momentum",
-                detail: "The visible public trail does not strongly signal that the project is actively moving toward demo-ready polish.",
+                title: "Judges may question project momentum",
+                detail: "Limited recent proof can make the project feel less ready, which may lower confidence during evaluation.",
                 severity: "medium",
                 evidenceIds: []
               }
@@ -110,7 +111,7 @@ export function buildHeuristicAnalysis(
       : "public clarity and demo proof";
   const projectName = investigation.repo.name;
 
-  return SharedProjectAnalysisSchema.parse({
+  const parsed = SharedProjectAnalysisSchema.parse({
     projectName,
     summary: `${projectName} shows enough signal that judges can understand the idea, but TinyFish found weak spots around ${weaknessLabel}. The upside is that ${topStrength.toLowerCase()}, while the main risk is that ${topRisk.toLowerCase()}.`,
     sourcesInspected: investigation.surfaces.map((surface) => ({
@@ -172,4 +173,6 @@ export function buildHeuristicAnalysis(
     },
     freshnessNarrative: freshnessNarrative(scores.freshness)
   });
+
+  return ensureDistinctAnalysisSections(parsed);
 }

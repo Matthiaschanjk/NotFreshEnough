@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ArtifactTypeSchema, SeveritySchema, SignalSchema, SurfaceStatusSchema, SurfaceTypeSchema } from "./tinyfish";
+import { GRADE_SCALE } from "../analysis/grading";
 
 export const AnalysisPointSchema = z.object({
   title: z.string(),
@@ -33,7 +34,7 @@ export const AnalysisScoresSchema = z.object({
   technicalDepth: z.number().min(1).max(10),
   freshness: z.number().min(1).max(10),
   overall: z.number().min(1).max(10),
-  overallGrade: z.enum(["A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "F"])
+  overallGrade: z.enum(GRADE_SCALE)
 });
 
 export const SharedProjectAnalysisSchema = z.object({

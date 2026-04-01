@@ -21,6 +21,36 @@ import {
 } from "../prompts/personas/korkorRefurbishedPrompt";
 import { buildAhGongFallback, buildAuntyFallback, buildRecommendationsFallback, buildRefurbishedFallback } from "./fallbacks";
 import type { PersonaFocusPlan } from "./focusAllocator";
+import type { AuntyQuestions, KorkorRecommendations } from "../schemas/personas";
+import { enforceAhGongVerdict } from "./familyTone";
+
+function normalizeCopy(value: string) {
+  return value.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function countJudgeItems(values: string[]) {
+  return values.filter((value) => /\bjudge|judges|orientation\b/i.test(value)).length;
+}
+
+function isValidAuntyPayload(data: AuntyQuestions) {
+  const normalized = data.questions.map(normalizeCopy);
+  return new Set(normalized).size === 3 && countJudgeItems(data.questions) <= 1;
+}
+
+function recommendationSignature(recommendation: KorkorRecommendations["recommendations"][number]) {
+  return normalizeCopy(`${recommendation.issue} ${recommendation.whyItMatters} ${recommendation.concreteAction}`);
+}
+
+function isValidRecommendationsPayload(data: KorkorRecommendations) {
+  return (
+    new Set(data.recommendations.map(recommendationSignature)).size === 3 &&
+    countJudgeItems(
+      data.recommendations.map(
+        (recommendation) => `${recommendation.issue} ${recommendation.whyItMatters} ${recommendation.concreteAction}`
+      )
+    ) <= 1
+  );
+}
 
 async function runPersona<T>({
   client,
@@ -28,7 +58,8 @@ async function runPersona<T>({
   schema,
   systemPrompt,
   userPrompt,
-  fallback
+  fallback,
+  validate
 }: {
   client: OpenAiClient | null;
   model: string;
@@ -36,6 +67,7 @@ async function runPersona<T>({
   systemPrompt: string;
   userPrompt: string;
   fallback: () => T;
+  validate?: (data: T) => boolean;
 }): Promise<PersonaEnvelope<T>> {
   if (!client) {
     return {
@@ -46,14 +78,24 @@ async function runPersona<T>({
   }
 
   try {
-    const data = await generateJsonCompletion({
-      client,
-      model,
-      schema,
-      systemPrompt,
-      userPrompt,
-      temperature: 0.5
-    });
+    const attempt = async (prompt: string) =>
+      generateJsonCompletion({
+        client,
+        model,
+        schema,
+        systemPrompt,
+        userPrompt: prompt,
+        temperature: 0.5
+      });
+
+    let data = await attempt(userPrompt);
+
+    if (validate && !validate(data)) {
+      data = await attempt(`${userPrompt}\n\nMake them distinct.`);
+      if (!validate(data)) {
+        throw new Error("Generated persona output was repetitive.");
+      }
+    }
 
     return {
       status: "ok",
@@ -93,7 +135,8 @@ export async function generateFamilyPanel(args: {
       schema: AuntyQuestionsSchema,
       systemPrompt: auntySystemPrompt,
       userPrompt: buildAuntyUserPrompt(analysis, focusPlan),
-      fallback: () => buildAuntyFallback(analysis, focusPlan)
+      fallback: () => buildAuntyFallback(analysis, focusPlan),
+      validate: isValidAuntyPayload
     }),
     runPersona({
       client,
@@ -109,7 +152,8 @@ export async function generateFamilyPanel(args: {
       schema: KorkorRecommendationsSchema,
       systemPrompt: korkorRecommendationsSystemPrompt,
       userPrompt: buildKorkorRecommendationsUserPrompt(analysis, focusPlan),
-      fallback: () => buildRecommendationsFallback(analysis, focusPlan)
+      fallback: () => buildRecommendationsFallback(analysis, focusPlan),
+      validate: isValidRecommendationsPayload
     }),
     runPersona({
       client,
@@ -123,7 +167,13 @@ export async function generateFamilyPanel(args: {
 
   return {
     aunty,
-    ahGong,
+    ahGong:
+      ahGong.status === "ok"
+        ? {
+            ...ahGong,
+            data: enforceAhGongVerdict(ahGong.data, analysis.scores.overallGrade, analysis, focusPlan)
+          }
+        : ahGong,
     korkorRecommendations,
     korkorRefurbished
   };

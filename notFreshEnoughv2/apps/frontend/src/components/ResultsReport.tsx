@@ -7,6 +7,62 @@ import { ShareSection } from "./ShareSection";
 import { TinyFishFindings } from "./TinyFishFindings";
 import { YourCousinsProjects } from "./YourCousinsProjects";
 
+const RECOMMENDATION_FALLBACKS = [
+  {
+    priority: 1 as const,
+    issue: "Technical robustness",
+    whyItMatters: "Implementation strength is not yet easy to verify from the public materials.",
+    concreteAction: "Document the architecture and one reproducible run path in the README."
+  },
+  {
+    priority: 2 as const,
+    issue: "Demo and onboarding",
+    whyItMatters: "A faster first-run path would make the product value easier to validate.",
+    concreteAction: "Add a visible demo link or a 60-second walkthrough near the top of the repo."
+  },
+  {
+    priority: 3 as const,
+    issue: "Suggested improvement",
+    whyItMatters: "One more proof artifact would reduce ambiguity around the main claim.",
+    concreteAction: "Add screenshots, expected outputs, or a short example flow to the public materials."
+  }
+];
+
+function normalizeRecommendation(
+  recommendation: { issue: string; whyItMatters: string; concreteAction: string }
+) {
+  return `${recommendation.issue} ${recommendation.whyItMatters} ${recommendation.concreteAction}`
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function buildDistinctRecommendations(
+  recommendations: Array<{ priority: 1 | 2 | 3; issue: string; whyItMatters: string; concreteAction: string }>
+) {
+  const seen = new Set<string>();
+  const output: typeof recommendations = [];
+
+  for (const recommendation of [...recommendations, ...RECOMMENDATION_FALLBACKS]) {
+    const normalized = normalizeRecommendation(recommendation);
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+
+    seen.add(normalized);
+    output.push({
+      ...recommendation,
+      priority: (output.length + 1) as 1 | 2 | 3
+    });
+
+    if (output.length === 3) {
+      break;
+    }
+  }
+
+  return output;
+}
+
 function ScoreRail({ label, value }: { label: string; value: number }) {
   return (
     <div className="grid gap-2">
@@ -55,9 +111,9 @@ export function ResultsReport({
 }) {
   const reportCard = buildReportCardViewModel(result);
   const ahGong = result.panel.ahGong.data;
-  const recommendations = result.panel.korkorRecommendations.data?.recommendations ?? [];
-  const failCopy =
-    result.panel.statusLabel === "FAIL" ? "You have disappointed your family." : "The family has stopped whispering for now.";
+  const recommendations = buildDistinctRecommendations(result.panel.korkorRecommendations.data?.recommendations ?? []);
+  const verdictCopy =
+    result.panel.statusLabel === "PASS" ? "You have not disappointed your family." : "You have disappointed your family.";
 
   return (
     <section className="report-area mx-auto flex w-full max-w-[900px] flex-col items-center gap-6">
@@ -73,7 +129,7 @@ export function ResultsReport({
             {result.panel.statusLabel}
           </div>
           <div>
-            <p className="font-body text-xl text-ink">{failCopy}</p>
+            <p className="font-body text-xl text-ink">{verdictCopy}</p>
             {ahGong ? <p className="mt-2 font-body text-base italic text-ink/60">{ahGong.closingLine}</p> : null}
           </div>
         </div>
@@ -101,10 +157,13 @@ export function ResultsReport({
         </PersonaBlock>
 
         <PersonaBlock title="Korkor's Recommendations" subtitle="Korkor: older sibling who knows how to fix it">
-          <PersonaMeta envelope={result.panel.korkorRecommendations} />
           <div className="grid gap-4">
             {recommendations.map((recommendation) => (
-              <article key={recommendation.priority} className="rounded-[1.5rem] border border-ink/10 bg-oat/65 p-5">
+              <article
+                key={recommendation.priority}
+                data-testid="korkor-recommendation"
+                className="rounded-[1.5rem] border border-ink/10 bg-oat/65 p-5"
+              >
                 <p className="font-body text-xs uppercase tracking-[0.18em] text-ink/45">Priority {recommendation.priority}</p>
                 <h4 className="mt-2 font-display text-3xl text-ink">{recommendation.issue}</h4>
                 <p className="mt-3 font-body text-sm leading-6 text-ink/72">

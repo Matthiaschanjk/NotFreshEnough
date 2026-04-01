@@ -18,7 +18,8 @@ describe("SimilarProjectsResponseSchema", () => {
         {
           full_name: "owner/cousin-one",
           url: "https://github.com/owner/cousin-one",
-          description: "Cousin project one",
+          source: "github",
+          one_line_description: "Cousin project one",
           similarity_score: 0.92,
           primary_language: "TypeScript",
           stars: 64,

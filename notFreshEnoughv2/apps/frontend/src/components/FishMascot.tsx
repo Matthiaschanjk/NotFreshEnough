@@ -12,7 +12,7 @@ export function FishMascot({
     <img
       src={fishPng}
       alt="TinyFish logo"
-      className={cn(compact ? "h-14 w-14 max-w-full object-contain" : "h-auto w-full max-w-full object-contain", className)}
+      className={cn(compact ? "h-16 w-16 max-w-full object-contain" : "h-auto w-full max-w-full object-contain", className)}
       draggable={false}
     />
   );

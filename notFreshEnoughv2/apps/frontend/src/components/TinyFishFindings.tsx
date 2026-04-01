@@ -11,6 +11,14 @@ function cleanExcerpt(value: string) {
     .trim();
 }
 
+function orderEvidence<T extends { signal: "positive" | "negative" | "neutral" }>(items: T[]) {
+  const positives = items.filter((item) => item.signal === "positive");
+  const negatives = items.filter((item) => item.signal === "negative");
+  const neutrals = items.filter((item) => item.signal === "neutral");
+
+  return [...positives, ...negatives, ...neutrals];
+}
+
 export function TinyFishFindings({
   analysis,
   warnings
@@ -19,6 +27,7 @@ export function TinyFishFindings({
   warnings: string[];
 }) {
   const sourceLabelMap = new Map(analysis.sourcesInspected.map((source) => [source.id, source.label]));
+  const orderedEvidence = orderEvidence(analysis.evidence);
 
   return (
     <section className="grid gap-6 rounded-[2rem] border border-ink/12 bg-white/78 p-6 shadow-paper md:p-8">
@@ -81,8 +90,8 @@ export function TinyFishFindings({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {analysis.evidence.map((item) => (
-          <article key={item.id} className="rounded-[1.5rem] border border-ink/10 bg-parchment p-5">
+        {orderedEvidence.map((item) => (
+          <article key={item.id} data-testid={`evidence-${item.signal}`} className="rounded-[1.5rem] border border-ink/10 bg-parchment p-5">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h4 className="font-display text-2xl text-ink">{item.title}</h4>
               <span className="rounded-full border border-ink/10 bg-white/80 px-3 py-1 font-body text-xs font-bold uppercase tracking-[0.12em] text-ink/50">

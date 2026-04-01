@@ -8,12 +8,13 @@ export interface SimilarProjectInputRepo {
 }
 
 export interface SimilarProjectResult {
-  full_name: string;
+  full_name?: string;
   url: string;
-  description: string;
+  source: "github" | "devpost" | "linkedin";
+  one_line_description: string;
   similarity_score: number;
   primary_language: string;
-  stars: number;
+  stars?: number;
   topic_overlap: string[];
   demo_url_present: boolean;
   docs_quality: "low" | "med" | "high";
@@ -22,6 +23,6 @@ export interface SimilarProjectResult {
 export interface SimilarProjectsResponse {
   input_repo: SimilarProjectInputRepo;
   results: SimilarProjectResult[];
-  project_status: "original_project" | "cousins_found";
-  message: string;
+  project_status: "original_project" | "cousins_found" | "error";
+  message?: string;
 }

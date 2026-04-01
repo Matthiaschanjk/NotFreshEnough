@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ArtifactTypeSchema } from "./tinyfish";
 
-export const VerdictSchema = z.enum(["Finalist", "Borderline", "Non-finalist"]);
+export const VerdictSchema = z.enum(["Borderline", "Jialat", "Siao Liao"]);
 
 export const AuntyQuestionsSchema = z.object({
   questions: z.array(z.string()).length(3)

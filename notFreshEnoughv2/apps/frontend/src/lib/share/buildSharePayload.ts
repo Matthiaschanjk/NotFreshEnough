@@ -1,9 +1,9 @@
 import type { JudgeProjectResponse } from "../../types/judgement";
 
 export function buildSharePayload(result: JudgeProjectResponse, origin = window.location.origin) {
-  const verdict = result.panel.ahGong.data?.verdict ?? (result.panel.statusLabel === "PASS" ? "Finalist" : "Non-finalist");
+  const verdict = result.panel.ahGong.data?.verdict ?? (result.panel.statusLabel === "PASS" ? "Borderline" : "Siao Liao");
   const verdictCopy =
-    verdict === "Finalist" ? "begrudgingly impressed" : verdict === "Borderline" ? "not fully convinced" : "not impressed";
+    verdict === "Borderline" ? "still sizing it up" : verdict === "Jialat" ? "looking quite worried" : "really not impressed";
 
   return {
     title: `NotFreshEnough: ${result.analysis.projectName}`,

@@ -14,12 +14,13 @@ export const SimilarProjectInputRepoSchema = z.object({
 });
 
 export const SimilarProjectResultSchema = z.object({
-  full_name: z.string(),
+  full_name: z.string().optional(),
   url: z.string().url(),
-  description: z.string(),
+  source: z.enum(["github", "devpost", "linkedin"]),
+  one_line_description: z.string(),
   similarity_score: z.number().min(0).max(1),
   primary_language: z.string(),
-  stars: z.number().int().nonnegative(),
+  stars: z.number().int().nonnegative().optional(),
   topic_overlap: z.array(z.string()),
   demo_url_present: z.boolean(),
   docs_quality: z.enum(["low", "med", "high"])
@@ -28,8 +29,8 @@ export const SimilarProjectResultSchema = z.object({
 export const SimilarProjectsResponseSchema = z.object({
   input_repo: SimilarProjectInputRepoSchema,
   results: z.array(SimilarProjectResultSchema).max(3),
-  project_status: z.enum(["original_project", "cousins_found"]),
-  message: z.string()
+  project_status: z.enum(["original_project", "cousins_found", "error"]),
+  message: z.string().optional()
 });
 
 export type SimilarProjectsRequest = z.infer<typeof SimilarProjectsRequestSchema>;
