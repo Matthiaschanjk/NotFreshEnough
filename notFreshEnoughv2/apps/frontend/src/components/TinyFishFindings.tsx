@@ -4,6 +4,18 @@ function severityLabel(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+function signalBadgeClasses(signal: "positive" | "negative" | "neutral") {
+  if (signal === "positive") {
+    return "border-jade/30 bg-jade/10 text-jade";
+  }
+
+  if (signal === "negative") {
+    return "border-cinnabar/30 bg-cinnabar/10 text-cinnabar";
+  }
+
+  return "border-ink/15 bg-white/80 text-ink/55";
+}
+
 function cleanExcerpt(value: string) {
   return value
     .replace(/<[^>]+>/g, " ")
@@ -94,7 +106,11 @@ export function TinyFishFindings({
           <article key={item.id} data-testid={`evidence-${item.signal}`} className="rounded-[1.5rem] border border-ink/10 bg-parchment p-5">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h4 className="font-display text-2xl text-ink">{item.title}</h4>
-              <span className="rounded-full border border-ink/10 bg-white/80 px-3 py-1 font-body text-xs font-bold uppercase tracking-[0.12em] text-ink/50">
+              <span
+                className={`rounded-full border px-3 py-1 font-body text-xs font-bold uppercase tracking-[0.12em] ${signalBadgeClasses(
+                  item.signal
+                )}`}
+              >
                 {severityLabel(item.signal)}
               </span>
             </div>
